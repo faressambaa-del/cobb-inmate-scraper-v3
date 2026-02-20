@@ -1,10 +1,6 @@
 {
   "actorSpecification": 1,
-  "name": "cobb-inmate-scraper",
-  "title": "Cobb County Inmate Scraper",
-  "description": "Scrapes inmate booking details from Cobb Sheriff site",
+  "name": "cobb-inmate-scraper-v3",
   "version": "1.0",
-  "meta": {
-    "templateId": "node-basic"
-  }
+  "buildTag": "latest"
 }
