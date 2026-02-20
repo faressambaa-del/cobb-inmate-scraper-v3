@@ -13,20 +13,31 @@ const baseUrl = 'http://inmate-search.cobbsheriff.org';
 const searchUrl =
   `${baseUrl}/inquiry.asp?soid=&inmate_name=${encodeURIComponent(inmateName)}&serial=&qry=In+Custody`;
 
+// 🔥 USE APIFY PROXY
+const proxyConfiguration = await Actor.createProxyConfiguration({
+  groups: ['RESIDENTIAL'],
+});
+
+const proxyUrl = await proxyConfiguration.newUrl();
+
 const cookieJar = new CookieJar();
 
 const client = got.extend({
   cookieJar,
+  agent: {
+    http: proxyUrl,
+    https: proxyUrl,
+  },
   headers: {
     'User-Agent':
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
   }
 });
 
-// Visit base to create session
+// Visit base page
 await client.get(baseUrl);
 
-// Search page
+// Search
 const searchResponse = await client.get(searchUrl);
 const $search = cheerio.load(searchResponse.body);
 
@@ -34,7 +45,7 @@ const detailsRelativeUrl =
   $search('a[href*="InmDetails.asp"]').first().attr('href');
 
 if (!detailsRelativeUrl) {
-  console.log('No inmate results found.');
+  console.log('Still blocked or no inmate found.');
   await Actor.exit();
 }
 
