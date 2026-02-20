@@ -2,6 +2,8 @@ import { Actor } from 'apify';
 import got from 'got';
 import * as cheerio from 'cheerio';
 import { CookieJar } from 'tough-cookie';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 await Actor.init();
 
@@ -13,20 +15,24 @@ const baseUrl = 'http://inmate-search.cobbsheriff.org';
 const searchUrl =
   `${baseUrl}/inquiry.asp?soid=&inmate_name=${encodeURIComponent(inmateName)}&serial=&qry=In+Custody`;
 
-// 🔥 USE APIFY PROXY
+// Create proxy
 const proxyConfiguration = await Actor.createProxyConfiguration({
   groups: ['RESIDENTIAL'],
 });
 
 const proxyUrl = await proxyConfiguration.newUrl();
 
+// Create proper agents
+const httpAgent = new HttpProxyAgent(proxyUrl);
+const httpsAgent = new HttpsProxyAgent(proxyUrl);
+
 const cookieJar = new CookieJar();
 
 const client = got.extend({
   cookieJar,
   agent: {
-    http: proxyUrl,
-    https: proxyUrl,
+    http: httpAgent,
+    https: httpsAgent,
   },
   headers: {
     'User-Agent':
@@ -34,10 +40,10 @@ const client = got.extend({
   }
 });
 
-// Visit base page
+// Visit homepage
 await client.get(baseUrl);
 
-// Search
+// Perform search
 const searchResponse = await client.get(searchUrl);
 const $search = cheerio.load(searchResponse.body);
 
@@ -51,7 +57,7 @@ if (!detailsRelativeUrl) {
 
 const detailsUrl = new URL(detailsRelativeUrl, baseUrl).href;
 
-// Details page
+// Visit details page
 const detailsResponse = await client.get(detailsUrl);
 const $ = cheerio.load(detailsResponse.body);
 
